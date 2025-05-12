@@ -1,0 +1,127 @@
+-- E-commerce Sales Analysis Project
+-- Full SQL Script: Schema + Sample Data + Queries
+
+-- 1. Create Tables
+
+CREATE TABLE customers (
+    customer_id INT PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100),
+    city VARCHAR(100),
+    signup_date DATE
+);
+
+CREATE TABLE products (
+    product_id INT PRIMARY KEY,
+    name VARCHAR(100),
+    category VARCHAR(50),
+    price DECIMAL(10, 2)
+);
+
+CREATE TABLE orders (
+    order_id INT PRIMARY KEY,
+    customer_id INT,
+    order_date DATE,
+    status VARCHAR(50),
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+
+CREATE TABLE order_items (
+    order_item_id INT PRIMARY KEY,
+    order_id INT,
+    product_id INT,
+    quantity INT,
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+CREATE TABLE payments (
+    payment_id INT PRIMARY KEY,
+    order_id INT,
+    payment_date DATE,
+    amount DECIMAL(10, 2),
+    method VARCHAR(50),
+    FOREIGN KEY (order_id) REFERENCES orders(order_id)
+);
+
+-- 2. Insert Sample Data
+
+-- Customers
+INSERT INTO customers VALUES
+(1, 'Alice Smith', 'alice@example.com', 'New York', '2023-01-10'),
+(2, 'Bob Johnson', 'bob@example.com', 'Los Angeles', '2023-02-14'),
+(3, 'Charlie Lee', 'charlie@example.com', 'Chicago', '2023-03-05');
+
+-- Products
+INSERT INTO products VALUES
+(1, 'Laptop', 'Electronics', 999.99),
+(2, 'Headphones', 'Electronics', 199.99),
+(3, 'Office Chair', 'Furniture', 149.99),
+(4, 'Notebook', 'Stationery', 5.99);
+
+-- Orders
+INSERT INTO orders VALUES
+(1, 1, '2023-03-01', 'Shipped'),
+(2, 2, '2023-03-10', 'Delivered'),
+(3, 1, '2023-03-15', 'Cancelled');
+
+-- Order Items
+INSERT INTO order_items VALUES
+(1, 1, 1, 1),
+(2, 1, 2, 2),
+(3, 2, 3, 1),
+(4, 2, 4, 5),
+(5, 3, 2, 1);
+
+-- Payments
+INSERT INTO payments VALUES
+(1, 1, '2023-03-02', 1399.97, 'Credit Card'),
+(2, 2, '2023-03-11', 179.94, 'PayPal');
+
+-- 3. Analysis Queries
+
+-- Total sales per month
+SELECT 
+    DATE_TRUNC('month', payment_date) AS month,
+    SUM(amount) AS total_sales
+FROM payments
+GROUP BY month
+ORDER BY month;
+
+-- Top 5 best-selling products
+SELECT 
+    p.name, 
+    SUM(oi.quantity) AS total_sold
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+GROUP BY p.name
+ORDER BY total_sold DESC
+LIMIT 5;
+
+-- Customer lifetime value
+SELECT 
+    c.name, 
+    SUM(pay.amount) AS lifetime_value
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+JOIN payments pay ON o.order_id = pay.order_id
+GROUP BY c.name
+ORDER BY lifetime_value DESC;
+
+-- Most popular product category
+SELECT 
+    p.category,
+    SUM(oi.quantity) AS total_quantity
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+GROUP BY p.category
+ORDER BY total_quantity DESC;
+
+-- Active customers (placed > 1 order)
+SELECT 
+    c.name,
+    COUNT(o.order_id) AS total_orders
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.name
+HAVING COUNT(o.order_id) > 1;
